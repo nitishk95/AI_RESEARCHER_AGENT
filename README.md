@@ -68,10 +68,24 @@ ai-researcher/
 
 ---
 
-**preview**
-![AI Researcher Demo](images/img1.png)
-![AI Researcher Demo](images/img2.png)
-![AI Researcher Demo](images/img3.png)
+## 🔍 Preview
+
+<p align="center">
+  <img src="images/img.png" alt="AI Researcher Demo" width="500"/>
+</p>
+
+<p align="center">
+  <img src="images/img1.png" alt="AI Researcher Demo" width="500"/>
+</p>
+
+<p align="center">
+  <img src="images/img2.png" alt="AI Researcher Demo" width="500"/>
+</p>
+
+<p align="center">
+  <img src="images/img3.png" alt="AI Researcher Demo" width="500"/>
+</p>
+
 
 ## 📄 License
 
