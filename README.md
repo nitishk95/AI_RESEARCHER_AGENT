@@ -2,6 +2,19 @@
 
 **AI Researcher** is an AI-powered assistant for scientific exploration. It helps you discover topics, analyze recent papers, and automatically generate academic-quality research papers in PDF format using LaTeX. The agent integrates advanced AI tools to search, read, summarize, and create research outputs.
 
+**🧠 How It Works**
+
+**Conversation Starter**: AI asks about your research interests.
+
+**Paper Discovery**: Searches arXiv for the latest papers.
+
+**Analysis**: Reads and summarizes selected papers.
+
+**Future Directions**: Suggests new research ideas.
+
+**Paper Writing**: Generates a LaTeX paper with equations.
+
+**PDF Rendering**: Exports the paper as a high-quality PDF.
 
 ---
 
