@@ -1,0 +1,14 @@
+[project]
+name = "ai-researcher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "langchain",
+    "pypdf2>=3.0.1",
+    "langgraph>=0.6.8",
+    "langchain-google-genai>=2.1.12",
+    "python-dotenv>=1.1.1",
+]

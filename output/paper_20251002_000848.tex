@@ -1,0 +1,156 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{\textbf{Towards Provably Secure LLM Fingerprinting: A Formal Security Framework}}
+\author{Research Assistant AI}
+\date{\today}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{principle}{Principle}
+
+\newcommand{\fingerprint}{\texttt{Fingerprint}}
+\newcommand{\verify}{\texttt{Verify}}
+\newcommand{\adv}{\mathcal{A}}
+\newcommand{\challenger}{\mathcal{C}}
+\newcommand{\prob}{\text{Pr}}
+\newcommand{\E}{\mathbb{E}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+The practice of fingerprinting large language models (LLMs) to protect intellectual property is becoming increasingly critical. However, current evaluation of fingerprinting schemes relies on an empirical, attack-driven methodology, creating an arms race between attackers and defenders. As demonstrated by Nasery et al. (2025), many existing schemes are vulnerable to adaptive adversarial attacks. To move beyond this cycle, we propose the first formal security framework for LLM fingerprinting. Our framework introduces rigorous, game-based definitions for security, capturing the adversary's dual goals of evading detection while preserving model utility. We define the core components of a fingerprinting system—the fingerprinting algorithm, the verification algorithm, and the adversary—and formalize security in terms of a Utility-Preserving Evasion (UPE) game. Using this framework, we analyze the systemic vulnerabilities of current methods, such as those exploiting overconfidence or unnatural queries, and show why they fail our formal security definitions. Finally, we leverage our framework to outline a principled path toward designing next-generation, provably secure fingerprinting schemes, emphasizing properties like non-localizability and semantic verification.
+\end{abstract}
+
+\section{Introduction}
+The development of state-of-the-art Large Language Models (LLMs) requires immense computational resources and curated data, representing a significant investment. Consequently, protecting this intellectual property from unauthorized duplication and use is a paramount concern for model developers. Model fingerprinting has emerged as a leading paradigm for ownership verification, allowing a developer to embed a secret, detectable signal within a model's weights.
+
+However, the security of these fingerprinting schemes is currently evaluated in an ad-hoc, empirical manner. A new scheme is typically proposed and demonstrated to be robust against a known set of transformations, such as fine-tuning or quantization. Subsequently, new research often reveals adaptive attacks that completely bypass these defenses. A prominent example is the work of Nasery et al. \cite{nasery2025}, which identified four fundamental vulnerabilities and presented attacks that successfully broke ten different fingerprinting schemes. This reactive cycle of attack and defense lacks predictive power and fails to establish clear design principles for building secure systems.
+
+To mature the field beyond this empirical arms race, we argue for a formal, cryptographic-style approach. In this paper, we introduce the first formal security framework for LLM fingerprinting. Our contributions are as follows:
+\begin{enumerate}
+    \item We define the formal syntax of a fingerprinting scheme, consisting of \fingerprint{} and \verify{} algorithms.
+    \item We formalize the threat model, considering a white-box adversary with complete access to the model's architecture and parameters, whose goal is to remove the fingerprint.
+    \item We introduce a quantitative and formal measure of model utility, which is essential for defining a realistic adversary who must preserve the model's performance on benign tasks.
+    \item We propose a formal security definition centered on a \textbf{Utility-Preserving Evasion (UPE)} game. An adversary wins this game if they can evade fingerprint verification while incurring only a negligible loss in model utility.
+    \item We analyze the vulnerabilities identified by Nasery et al. through the lens of our framework, formally demonstrating why existing schemes are insecure.
+\end{enumerate}
+This framework provides a rigorous foundation for analyzing, comparing, and ultimately designing the next generation of provably secure fingerprinting schemes.
+
+\section{Preliminaries: Defining a Fingerprinting Scheme}
+We model an LLM, $M$, as a function parameterized by a vector of weights $\theta$. For a given input prompt (a sequence of tokens) $p$, the model outputs a probability distribution over the next token from a vocabulary $\mathcal{V}$:
+$$ M(p; \theta) = P(\cdot | p; \theta) $$
+
+\begin{definition}[Fingerprinting Scheme]
+A fingerprinting scheme $\Pi$ is a pair of probabilistic polynomial-time algorithms $(\fingerprint, \verify)$:
+\begin{itemize}
+    \item $\fingerprint(M, S) \rightarrow M'$: The fingerprinting algorithm takes as input the original model $M$ with parameters $\theta$ and a set of secret fingerprint data $S = \{(q_i, r_i)\}_{i=1}^n$, where $q_i$ are fingerprint queries and $r_i$ are the target responses. It outputs a new, fingerprinted model $M'$ with parameters $\theta'$.
+    \item $\verify(M'', S) \rightarrow \{\text{Accept}, \text{Reject}\}$: The verification algorithm takes as input a suspect model $M''$ and the secret data $S$. It interacts with $M''$ (e.g., by providing the queries $q_i$) and outputs a decision.
+\end{itemize}
+\end{definition}
+
+A functional fingerprinting scheme must satisfy a basic correctness property, ensuring that an honestly fingerprinted model is recognized by the verifier.
+
+\begin{definition}[Correctness]
+A scheme $\Pi$ is correct if for any model $M$ and any secret $S$ generated according to the scheme's specification, the following holds for a security parameter $\lambda$:
+$$ \prob[\verify(\fingerprint(M, S), S) = \text{Accept}] \ge 1 - \text{negl}(\lambda) $$
+where $\text{negl}(\cdot)$ is a negligible function.
+\end{definition}
+
+\section{The Formal Security Model}
+The central contribution of this work is a formal definition of security for LLM fingerprinting. This requires formalizing both the adversary's goal (evasion) and constraints (utility preservation).
+
+\subsection{Model Utility}
+An adversary who steals a model wishes to use it. Therefore, any modifications made to erase a fingerprint must not significantly degrade the model's performance on general tasks. We formalize this constraint with a utility function.
+
+\begin{definition}[Model Utility]
+Let $\mathcal{D}$ be a distribution over benign, real-world task instances $(x, y)$, where $x$ is a prompt and $y$ is a desired (ground-truth) response. Let $\text{Score}(M(x), y)$ be a function measuring the quality of model $M$'s response to prompt $x$ against $y$. The utility of a model $M$, denoted $U(M)$, is its expected performance over this distribution:
+$$ U(M) = \E_{(x,y) \sim \mathcal{D}}[\text{Score}(M(x), y)] $$
+The scoring function can be accuracy for classification tasks, ROUGE for summarization, or other relevant metrics.
+\end{definition}
+
+\subsection{The Utility-Preserving Evasion (UPE) Game}
+We define the security of a scheme $\Pi$ through a game played between a challenger $\challenger$ and an adversary $\adv$.
+
+\begin{definition}[The UPE Game]
+The Utility-Preserving Evasion game, denoted $\text{Game}_{\text{UPE}}(\adv, \Pi, \lambda)$, proceeds as follows:
+\begin{enumerate}
+    \item \textbf{Setup:} The challenger $\challenger$ selects a base model $M$ and generates a secret fingerprint set $S$ according to a security parameter $\lambda$.
+    \item \textbf{Fingerprinting:} The challenger computes the fingerprinted model $M' \leftarrow \fingerprint(M, S)$ and sends $M'$ to the adversary $\adv$.
+    \item \textbf{Attack:} The adversary $\adv$, given white-box access to $M'$, produces a modified model $M''$.
+    \item \textbf{Winning Condition:} The adversary $\adv$ wins the game (output is 1) if both of the following conditions are met:
+    \begin{itemize}
+        \item \textbf{Evasion:} $\verify(M'', S) = \text{Reject}$.
+        \item \textbf{Utility Preservation:} $U(M'') \ge U(M') - \varepsilon$, for a pre-defined utility-loss tolerance $\varepsilon \ge 0$.
+    \end{itemize}
+    Otherwise, the adversary loses (output is 0).
+\end{enumerate}
+\end{definition}
+
+\subsection{Security Definition}
+Based on the UPE game, we can now define what it means for a fingerprinting scheme to be secure.
+
+\begin{definition}[($\varepsilon, \delta$)-Security]
+A fingerprinting scheme $\Pi$ is $(\varepsilon, \delta)$-secure if for any probabilistic polynomial-time (PPT) adversary $\adv$, the probability that $\adv$ wins the UPE game is less than $\delta$:
+$$ \prob[\text{Game}_{\text{UPE}}(\adv, \Pi, \lambda) = 1] \le \delta $$
+\end{definition}
+This definition formalizes the security guarantee. It asserts that no efficient adversary can remove the fingerprint (evade verification) without either suffering a significant utility loss (greater than $\varepsilon$) or having only a small probability of success (less than $\delta$).
+
+\section{Analysis of Existing Vulnerabilities}
+We now use our formal framework to analyze the vulnerabilities identified by Nasery et al. \cite{nasery2025}, demonstrating that the corresponding schemes are not $(\varepsilon, \delta)$-secure for any reasonably small $\varepsilon$ and $\delta$.
+
+\subsection{Verbatim Verification Schemes}
+Many early schemes rely on the fingerprinted model producing an exact, memorized string.
+\begin{itemize}
+    \item \textbf{Formal Flaw:} The $\verify$ algorithm checks for an exact match: $\text{argmax}_{y} P(y | q_i; \theta'') = r_i$. An adversary can deploy a simple \texttt{SuppressTop-k} attack, which slightly perturbs the output distribution at the first token generation step by disallowing the most probable token. This minimal change causes verification to fail, so the \textbf{Evasion} condition is met. Because the modification is tiny and can be targeted, its effect on the model's behavior over the broad distribution $\mathcal{D}$ of benign prompts is negligible. Thus, the utility loss is minimal, satisfying the \textbf{Utility Preservation} condition for a very small $\varepsilon$. The adversary's winning probability $\delta$ approaches 1.
+\end{itemize}
+
+\subsection{Overconfidence as a Side-Channel}
+Invasive fingerprinting often leads to the model being overconfident in its responses to fingerprint queries.
+\begin{itemize}
+    \item \textbf{Formal Flaw:} Overconfidence means that for a fingerprint query $q_i$, the output probability is sharply peaked: $\max_t P(t | q_i; \theta') \gg \max_t P(t | x; \theta')$ for a benign prompt $x \sim \mathcal{D}$. This is a statistical leak of information. An adversary can exploit this by applying an attack (like \texttt{SuppressTop-k}) \textit{only when} the model's confidence exceeds a high threshold. This conditional attack almost never triggers on benign inputs from $\mathcal{D}$, leading to a near-zero utility loss ($\varepsilon \approx 0$). However, it reliably triggers on fingerprint queries, ensuring evasion. The scheme is therefore not secure.
+\end{itemize}
+
+\subsection{Unnatural Queries}
+Intrinsic fingerprinting methods sometimes generate queries that are statistically distinguishable from natural language.
+\begin{itemize}
+    \item \textbf{Formal Flaw:} The distribution of fingerprint queries, $S_q = \{q_i\}$, is statistically distinguishable from the benign prompt distribution $\mathcal{D}$. An adversary can compute the perplexity of an incoming prompt $p$ using a generic language model. The adversary's model $M''$ can then implement a simple rule: if $\text{Perplexity}(p)$ is above a threshold, refuse to answer; otherwise, compute the response using $M'$. Since all $q_i \in S_q$ have high perplexity, verification will always fail. Since prompts $x \sim \mathcal{D}$ have low perplexity, the filter does not affect utility, meaning $\varepsilon = 0$. The adversary wins with probability $\delta=1$.
+\end{itemize}
+
+\section{Principles for Provably Secure Fingerprinting}
+Our formal framework not only allows us to diagnose failures but also guides the design of more robust schemes. We propose the following principles for achieving $(\varepsilon, \delta)$-security.
+
+\begin{principle}[Semantic Verification]
+The $\verify$ algorithm must be robust to semantically meaningless perturbations. Instead of relying on exact string matches, verification should operate in a semantic space. For example, using a sentence embedding model $E(\cdot)$:
+$$ \verify \text{ accepts if } \text{distance}(E(M''(q_i)), E(r_i)) \le \tau $$
+To evade this, an adversary must produce an output that is semantically different, which is more likely to incur a significant utility penalty $\varepsilon$.
+\end{principle}
+
+\begin{principle}[Fingerprint Non-Localization]
+The changes induced by the $\fingerprint$ algorithm should be distributed diffusely across the model's parameters $\theta$. If the fingerprint is localized to a small, identifiable set of neurons or layers, an adversary can use model editing techniques to erase it with minimal collateral damage. A diffuse fingerprint, represented by small changes to millions of parameters, is much harder to isolate and remove without causing a catastrophic drop in utility.
+\end{principle}
+
+\begin{principle}[Input Indistinguishability]
+The distribution of fingerprint queries $\{q_i\}$ must be computationally indistinguishable from the distribution of benign prompts $\mathcal{D}$. This directly counters filtering attacks based on perplexity or other statistical anomalies, forcing an adversary to process fingerprint and benign queries identically. This increases the difficulty of mounting a targeted attack that preserves utility.
+\end{principle}
+
+\section{Conclusion}
+The current approach to validating LLM fingerprinting schemes is stuck in a reactive cycle of empirical attacks and patches. We have introduced the first formal security framework to break this cycle, providing a path towards provable security. Our central contribution, the Utility-Preserving Evasion (UPE) game and the resulting $(\varepsilon, \delta)$-security definition, provides a rigorous method for analyzing and comparing the security of fingerprinting schemes. By using this framework to formally explain the vulnerabilities in existing systems, we have demonstrated its diagnostic power. Furthermore, the principles of semantic verification, non-localization, and input indistinguishability, derived from our formal model, provide a constructive roadmap for future research. The ultimate goal is to design novel fingerprinting schemes and to formally prove that they are $(\varepsilon, \delta)$-secure within this framework.
+
+\begin{thebibliography}{9}
+
+\bibitem{nasery2025}
+Nasery, A., Contente, E., Kaz, A., Viswanath, P., \& Oh, S. (2025). 
+\textit{Are Robust LLM Fingerprints Adversarially Robust?}. 
+arXiv preprint arXiv:2509.26598. 
+Available at: \href{http://arxiv.org/pdf/2509.26598v1}{http://arxiv.org/pdf/2509.26598v1}
+
+\end{thebibliography}
+\end{document}
